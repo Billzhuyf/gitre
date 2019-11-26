@@ -318,11 +318,11 @@ static void syscall_handler (struct intr_frame *f){
 	// 			  e = list_next (e);
 	// 			  list_remove(e2);
 	// 		  }
-			  else
-				e = list_next (e);
-		  }
-		lock_release(&thread_current()->spt_list_lock);
-  }
+	// 		  else
+	// 			e = list_next (e);
+	// 	  }
+	// 	lock_release(&thread_current()->spt_list_lock);
+  // }
 }
 
 // Terminates Pintos by calling shutdown_power_off()
