@@ -33,9 +33,6 @@ struct pool
     uint8_t *base;                      /* Base of pool. */
   };
 
-/* L: store the max page count */
-size_t user_page_cnt;
-
 /* Two pools: one for kernel data, one for user pages. */
 static struct pool kernel_pool, user_pool;
 
@@ -170,10 +167,6 @@ init_pool (struct pool *p, void *base, size_t page_cnt, const char *name)
   lock_init (&p->lock);
   p->used_map = bitmap_create_in_buf (page_cnt, base, bm_pages * PGSIZE);
   p->base = base + bm_pages * PGSIZE;
-  if (p == &user_pool)
-  {
-    user_page_cnt = page_cnt;
-  }
 }
 
 /* Returns true if PAGE was allocated from POOL,
