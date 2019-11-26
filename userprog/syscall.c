@@ -140,24 +140,24 @@ static void syscall_handler (struct intr_frame *f){
   }
 
   else if(syscall_num == SYS_REMOVE){                                   /*sys_remove*/
-    // #ifdef VM
-    //         struct list_elem *se;
-    //         struct spt_elem *spte;
-    //         bool deny;
-    // 		deny=false;
-    // 		for(se=list_begin(&thread_current()->spt);
-    // 		se!=list_end(&thread_current()->spt);se=list_next(se))
-    // 		{
-    // 			spte=(struct spt_elem *)list_entry (se, struct spt_elem, elem);
-    // 			if(spte->fileptr==*(pp+1))
-    // 			{
-    // 				//暂时不关闭
-    // 				spte->needremove=true;
-    // 				deny=true;
-    // 				break;
-    // 			}
-    // 		}
-    // #endif
+    #ifdef VM
+            struct list_elem *se;
+            struct spt_elem *spte;
+            bool deny;
+    		deny=false;
+    		for(se=list_begin(&thread_current()->spt);
+    		se!=list_end(&thread_current()->spt);se=list_next(se))
+    		{
+    			spte=(struct spt_elem *)list_entry (se, struct spt_elem, elem);
+    			if(spte->fileptr==*(pp+1))
+    			{
+    				//暂时不关闭
+    				spte->needremove=true;
+    				deny=true;
+    				break;
+    			}
+    		}
+    #endif
     is_valid_ptr(ptr+4);                                                /*check if the head of the pointer is valid*/
     is_valid_ptr(ptr+7);                                                /*check if the tail of the pointer is valid*/
     char *file_name = *(char **)(ptr+4);                                /*get file name*/
