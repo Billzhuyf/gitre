@@ -157,8 +157,6 @@ static void syscall_handler (struct intr_frame *f){
     				break;
     			}
     		}
-    		if(deny)
-    		break;
     #endif
     is_valid_ptr(ptr+4);                                                /*check if the head of the pointer is valid*/
     is_valid_ptr(ptr+7);                                                /*check if the tail of the pointer is valid*/
@@ -245,8 +243,6 @@ static void syscall_handler (struct intr_frame *f){
     					break;
     				}
     			}
-    			if(deny)
-    			break;
     #endif
     is_valid_ptr(ptr+4);                                               /*check if the head of the pointer is valid*/
     is_valid_ptr(ptr+7);                                               /*check if the tail of the pointer is valid*/
