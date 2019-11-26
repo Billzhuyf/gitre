@@ -227,6 +227,7 @@ static void syscall_handler (struct intr_frame *f){
 
   else if(syscall_num == SYS_CLOSE){                                   /*sys_close*/
     #ifdef VM
+          bool deny;
     			deny=false;
     			for(se=list_begin(&thread_current()->spt);
     			se!=list_end(&thread_current()->spt);se=list_next(se))
