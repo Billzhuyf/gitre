@@ -224,6 +224,10 @@ static void syscall_handler (struct intr_frame *f){
   }
 
   else if(syscall_num == SYS_CLOSE){                                   /*sys_close*/
+
+    is_valid_ptr(ptr+4);                                               /*check if the head of the pointer is valid*/
+    is_valid_ptr(ptr+7);                                               /*check if the tail of the pointer is valid*/
+    int fd = *(int *)(ptr + 4);                                        /*get fd*/
     #ifdef VM
           bool deny;
           struct list_elem *e;
@@ -244,9 +248,6 @@ static void syscall_handler (struct intr_frame *f){
     				}
     			}
     #endif
-    is_valid_ptr(ptr+4);                                               /*check if the head of the pointer is valid*/
-    is_valid_ptr(ptr+7);                                               /*check if the tail of the pointer is valid*/
-    int fd = *(int *)(ptr + 4);                                        /*get fd*/
     close(fd);
   }
   else if(syscall_num == SYS_MMAP){
