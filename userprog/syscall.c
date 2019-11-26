@@ -13,6 +13,8 @@
 #include "devices/shutdown.h"
 #include "threads/palloc.h"
 #include "userprog/pagedir.h"
+#include "vm/frame.h"
+#include "vm/page.h"
 
 typedef int pid_t;
 
@@ -242,7 +244,7 @@ static void syscall_handler (struct intr_frame *f){
     lock_acquire(&thread_current()->spt_list_lock);
            while(filesize>0)
            {
-      spte=(struct spt_elem *)malloc(sizeof(spt_elem));
+      spte=(struct spt_elem *)malloc(sizeof(struct spt_elem));
       spte->upage=upage;
       for (se = list_begin (&thread_current()->spt); se != list_end (&thread_current()->spt);
       se = list_next (se))
