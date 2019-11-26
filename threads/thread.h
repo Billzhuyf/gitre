@@ -95,10 +95,23 @@ struct thread
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
+    struct list fd_list;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
+#endif
+#ifdef VM
+    /* L: everyone get his own SPT mmok? */
+    struct list spt;
+    /* L: remember the end of the stack */
+    void* stacklow;
+    //[X]swap表
+    struct list swapt;
+    //[X]awapt锁
+    struct lock swap_list_lock;
+    //[X]spt锁
+    struct lock spt_list_lock;
 #endif
 
     /* Owned by thread.c. */

@@ -17,6 +17,7 @@
 typedef int pid_t;
 
 static void syscall_handler (struct intr_frame *);
+static int mapid=1;
 
 // different kinds of systemcall function that will be used.
 void halt (void);
@@ -223,7 +224,7 @@ static void syscall_handler (struct intr_frame *f){
         {
         file_d = list_entry (e, struct file_desc, elem);
         //[X]找到文件描述符为fd的文件
-        if (file_d->fd == *(p+1)){
+        if (file_d->fd == *(ptr+1)){
      findornot=true;
            filesize= file_length (file_d->file);
            //[X]因为一个文件可能占有多个
