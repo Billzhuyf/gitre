@@ -106,6 +106,15 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
+    int ret_status;
+    //[X]sema to avoid busy wait
+    struct semaphore tsem,wsem;
+    //[X]store child threads' information
+    struct list child_list;
+    //[X]store the file* to avoid write in the elf file
+    struct file* elffile;
+    //[X] whether the thread has already been waited
+    bool alwaited;
 #endif
 #ifdef VM
     /* L: everyone get his own SPT mmok? */
