@@ -94,7 +94,7 @@ void is_valid_string (const char *str){
 
 // function that call different syscalls
 static void syscall_handler (struct intr_frame *f){
-  void *ptr = f->esp;
+  uint32_t *ptr = f->esp;
   is_valid_ptr(ptr);                                                    /*check if the head of the pointer is valid*/
   is_valid_ptr(ptr+3);                                                  /*check if the tail of the pointer is valid*/
   int syscall_num = * (int *)f->esp;                                    /*get which systemcall*/
@@ -231,7 +231,7 @@ static void syscall_handler (struct intr_frame *f){
            int mapped_page=0;
      off_t fileoff=0;
      //检查了测试，初始地址都是页面对齐的，所以不用处理第一次映射的不对齐问题
-     uint32_t upage=*(p+2);
+     uint32_t upage=*(ptr+2);
      //[X]不合要求的虚存地址不能被映射
      if(upage==0||(pg_round_down(upage)!=upage)||upage+PGSIZE>f->esp
      ||upage<0x08050000)
@@ -292,10 +292,9 @@ static void syscall_handler (struct intr_frame *f){
   }
   else
   f->eax=-1;
-break;
   }
   else if(syscall_num == SYS_MUNMAP){
-    int mip=*(p+1);
+    int mip=*(ptr+1);
 		struct thread* t=thread_current();
 		struct spt_elem *spte;
 		struct list_elem *e;
@@ -321,7 +320,6 @@ break;
 				e = list_next (e);
 		  }
 		lock_release(&thread_current()->spt_list_lock);
-		break;
   }
 }
 
