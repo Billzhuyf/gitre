@@ -96,7 +96,7 @@ void is_valid_string (const char *str){
 
 // function that call different syscalls
 static void syscall_handler (struct intr_frame *f){
-  uint32_t *ptr = f->esp;
+  void *ptr = f->esp;
   is_valid_ptr(ptr);                                                    /*check if the head of the pointer is valid*/
   is_valid_ptr(ptr+3);                                                  /*check if the tail of the pointer is valid*/
   int syscall_num = * (int *)f->esp;                                    /*get which systemcall*/
