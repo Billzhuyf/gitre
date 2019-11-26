@@ -1,7 +1,3 @@
-//      page.h
-//      
-//      Copyright 2011 mayli <mayli.he@gmail.com>,sneakerkg<xiaotj1990327@gmail.com>
-//      
 #ifndef VM_PAGE_H
 #define VM_PAGE_H
 
@@ -22,16 +18,16 @@ struct spt_elem{
   uint32_t read_bytes;
   uint32_t zero_bytes;
   bool writable;
-  
+
   void *kpage;
-  
+
   //[X]用来记录文件映射的信息
   bool needclose;
   bool needremove;
   int mapid;
-  
+
   /* a swap slot */
-  
+
   /* a list elem */
   struct list_elem elem;
 };

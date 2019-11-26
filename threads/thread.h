@@ -17,6 +17,12 @@ enum thread_status
     THREAD_DYING        /* About to be destroyed. */
   };
 
+struct file_desc
+{
+int fd;  /* L:file descriptor */
+struct file *file;
+struct list_elem elem;
+};
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
