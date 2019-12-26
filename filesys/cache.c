@@ -112,33 +112,33 @@ struct cache_entry *find_cache_by_sector(block_sector_t sector){
 }
 
 struct cache_entry *clock(void){
-  int i = 0;
-  struct cache_entry *a = &buffer_cache[i];
-  while (i < 64) {
-    a = &buffer_cache[i];
-    if(lock_try_acquire(&a->cache_entry_lock)){
-      if(a->be_used == 0){
-        a->be_used = 1;
-        return a;
-      }
-      else{
-        if(a->dirty){
-          a->dirty = false;
-          block_write(fs_device, a->sector_number, a->buffer);
-        }
-        return a;
-      }
-    }
-    else{
-      if(i == 63){
-        i = 0;
-      }
-      else{
-        i = i + 1;
-      }
-      continue;
-    }
-  }
+  // int i = 0;
+  // struct cache_entry *a = &buffer_cache[i];
+  // while (i < 64) {
+  //   a = &buffer_cache[i];
+  //   if(lock_try_acquire(&a->cache_entry_lock)){
+  //     if(a->be_used == 0){
+  //       a->be_used = 1;
+  //       return a;
+  //     }
+  //     else{
+  //       if(a->dirty){
+  //         a->dirty = false;
+  //         block_write(fs_device, a->sector_number, a->buffer);
+  //       }
+  //       return a;
+  //     }
+  //   }
+  //   else{
+  //     if(i == 63){
+  //       i = 0;
+  //     }
+  //     else{
+  //       i = i + 1;
+  //     }
+  //     continue;
+  //   }
+  // }
 
 
   //   if (!succ) {
