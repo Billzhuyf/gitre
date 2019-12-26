@@ -167,40 +167,40 @@ struct cache_entry *clock(void){
 
 
 
-    // int min = 0;
-    // int i = 0;
-    // struct cache_entry *temp;
-    // while (i < 64){
-    //   struct cache_entry *a = buffer_cache + i;
-    //   bool succ = lock_try_acquire(&a->cache_entry_lock);
-    //   if (!succ) {
-    //     i = i + 1;
-    //     continue;
-    //   }
-    //   if (a->be_used == 0){
-    //     a->be_used = 1;
-    //     return a;
-    //   }
-    //   else{
-    //     if (a->lru > min){
-    //       min = a->lru;
-    //       if(temp){
-    //         lock_release(&temp->cache_entry_lock);
-    //       }
-    //       temp = a;
-    //       i = i + 1;
-    //       continue;
-    //     }
-    //   }
-    //   lock_release(&a->cache_entry_lock);
-    //   i = i + 1;
-    // }
-    // if (temp->dirty){
-    //   block_write(fs_device, temp->sector_number, temp->buffer);
-    //   temp->dirty = false;
-    //   temp->lru = 0;
-    // }
-    // return temp;
+    int min = 0;
+    int i = 0;
+    struct cache_entry *temp;
+    while (i < 64){
+      struct cache_entry *a = &buffer_cache[i];
+      bool succ = lock_try_acquire(&a->cache_entry_lock);
+      if (!succ) {
+        i = i + 1;
+        continue;
+      }
+      if (a->be_used == 0){
+        a->be_used = 1;
+        return a;
+      }
+      else{
+        if (a->lru > min){
+          min = a->lru;
+          if(temp){
+            lock_release(&temp->cache_entry_lock);
+          }
+          temp = a;
+          i = i + 1;
+          continue;
+        }
+      }
+      lock_release(&a->cache_entry_lock);
+      i = i + 1;
+    }
+    if (temp->dirty){
+      block_write(fs_device, temp->sector_number, temp->buffer);
+      temp->dirty = false;
+      temp->lru = 0;
+    }
+    return temp;
 
 }
 
@@ -216,7 +216,7 @@ void cache_read_at(block_sector_t sector, void *buffer,off_t size, off_t offset)
         // miss!
         a = clock();
         for (i = 0; i < 64; ++ i) {
-            struct cache_entry *c = buffer_cache + i;
+            struct cache_entry *c = &buffer_cache[i];
             if (c != a && c->be_used == 1) {
                 lock_acquire(&c->cache_entry_lock);
                 c->lru = c->lru + 1;
@@ -230,7 +230,7 @@ void cache_read_at(block_sector_t sector, void *buffer,off_t size, off_t offset)
         block_read(fs_device, sector, a->buffer);
     } else {
       for (i = 0; i < 64; ++ i) {
-          struct cache_entry *c = buffer_cache + i;
+          struct cache_entry *c = &buffer_cache[i];
           if (c != a && c->be_used == 1) {
             lock_acquire(&c->cache_entry_lock);
             c->lru = c->lru + 1;
@@ -262,7 +262,7 @@ void cache_write_at(block_sector_t sector, const void *buffer,off_t size, off_t 
         // miss!
         a = clock();
         for (i = 0; i < 64; ++ i) {
-            struct cache_entry *c = buffer_cache + i;
+            struct cache_entry *c = &buffer_cache[i];
             if (c != a && c->be_used == 1) {
                 lock_acquire(&c->cache_entry_lock);
                 c->lru = c->lru + 1;
@@ -277,7 +277,7 @@ void cache_write_at(block_sector_t sector, const void *buffer,off_t size, off_t 
             block_read(fs_device, sector, a->buffer);
     } else {
       for (i = 0; i < 64; ++ i) {
-          struct cache_entry *c = buffer_cache + i;
+          struct cache_entry *c = &buffer_cache[i];
           if (c != a && c->be_used == 1) {
             lock_acquire(&c->cache_entry_lock);
             c->lru = c->lru + 1;
