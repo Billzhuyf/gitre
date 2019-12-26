@@ -91,7 +91,7 @@ struct cache_entry *find_cache_by_sector(block_sector_t sector){
     a = &buffer_cache[i];
     lock_acquire(&a->cache_entry_lock);
     if (a->be_used == 1){
-      if a->sector_number == sector){
+      if (a->sector_number == sector){
         return a;
       }
     }
@@ -112,7 +112,7 @@ struct cache_entry *find_cache_by_sector(block_sector_t sector){
 }
 
 struct cache_entry *clock(void){
-  int i = 0;
+  // int i = 0;
   // struct cache_entry *a = &buffer_cache[i];
   // while (i < 64) {
   //   a = &buffer_cache[i];
@@ -210,7 +210,7 @@ void cache_read(block_sector_t sector, void *buffer) {
 
 void cache_read_at(block_sector_t sector, void *buffer,off_t size, off_t offset){
     lock_acquire(&cache_lock);
-    // int i;
+    int i;
     struct cache_entry *a = find_cache_by_sector(sector);
     if (!a) {
         // miss!
@@ -256,7 +256,7 @@ void cache_write(block_sector_t sector, const void *buffer) {
 void cache_write_at(block_sector_t sector, const void *buffer,off_t size, off_t offset) {
     ASSERT(buffer);
     lock_acquire(&cache_lock);
-    // int i;
+    int i;
     struct cache_entry *a = find_cache_by_sector(sector);
     if (!a) {
         // miss!
