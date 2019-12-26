@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <threads/synch.h>
 #include "filesys/file.h"
+#include "filesys/directory.h"
 #include "userprog/syscall.h"
 
 /* States in a thread's life cycle. */
@@ -17,12 +18,6 @@ enum thread_status
     THREAD_DYING        /* About to be destroyed. */
   };
 
-struct file_desc
-{
-int fd;  /* L:file descriptor */
-struct file *file;
-struct list_elem elem;
-};
 /* Thread identifier type.
    You can redefine this to whatever type you like. */
 typedef int tid_t;
@@ -101,32 +96,10 @@ struct thread
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-    struct list fd_list;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
-    int ret_status;
-    //[X]sema to avoid busy wait
-    struct semaphore tsem,wsem;
-    //[X]store child threads' information
-    struct list child_list;
-    //[X]store the file* to avoid write in the elf file
-    struct file* elffile;
-    //[X] whether the thread has already been waited
-    bool alwaited;
-#endif
-#ifdef VM
-    /* L: everyone get his own SPT mmok? */
-    struct list spt;
-    /* L: remember the end of the stack */
-    void* stacklow;
-    //[X]swap表
-    struct list swapt;
-    //[X]awapt锁
-    struct lock swap_list_lock;
-    //[X]spt锁
-    struct lock spt_list_lock;
 #endif
 
     /* Owned by thread.c. */
@@ -140,6 +113,8 @@ struct thread
     struct semaphore sema1;             /* semaphare used to let parent wait while child is loading */
     struct semaphore sema2;             /* the semaphore used to exit*/
     struct semaphore sema3;             /* the semaphare used to wait*/
+
+    struct dir *cwd;
   };
 
 /* If false (default), use round-robin scheduler.
@@ -149,6 +124,7 @@ extern bool thread_mlfqs;
 
 void thread_init (void);
 void thread_start (void);
+void thread_cwd_init (void);
 
 void thread_tick (void);
 void thread_print_stats (void);

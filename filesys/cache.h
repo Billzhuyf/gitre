@@ -1,36 +1,27 @@
 #ifndef FILESYS_CACHE_H
 #define FILESYS_CACHE_H
-#include <stdbool.h>
-#include "filesys/off_t.h"
+
+#include "off_t.h"
 #include "devices/block.h"
-#include "lib/kernel/list.h"
-#include "threads/synch.h"
-#include "filesys/inode.h"
-#include <list.h>
-#include <debug.h>
-#include <round.h>
-#include <string.h>
-#include "filesys/filesys.h"
-#include "filesys/free-map.h"
-#include "threads/malloc.h"
 
-struct cache_entry
-  {
-    bool dirty;
-    bool valid;
-    int reference;
-    block_sector_t sector; 
-    struct semaphore sector_lock;
-    void *block; 
-  };
+struct cache_entry {
+  uint8_t buffer[BLOCK_SECTOR_SIZE];
+  struct lock cache_entry_lock;
+  bool dirty;
+  int be_used;
+  // bool accessed;
+  // int lru;
+  block_sector_t sector_number;
+};
 
-int clock_hand; 
-struct lock cache_lock; 
+void cache_init(void);
+void cache_refresh(void);
+struct cache_entry *find_cache_by_sector(block_sector_t sector);
+struct cache_entry *clock(void);
+void cache_read(block_sector_t sector, void *buffer);
+void cache_read_at(block_sector_t sector, void *buffer, off_t size, off_t offset);
+void cache_write(block_sector_t sector, const void *buffer);
+void cache_write_at(block_sector_t sector, const void *buffer, off_t size, off_t offset);
+// void cache_read_ahead_put(block_sector_t sector);
 
-void cache_init (void);
-void cache_write_to_disk (void);
-void cache_clean (void);
-void cache_write_to_sector (block_sector_t sector, void *buffer);
-void cache_get_sector (block_sector_t sector, void *buffer);
-
-#endif
+#endif /* filesys/cache.h */

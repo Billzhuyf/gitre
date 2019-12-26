@@ -7,19 +7,19 @@
 #include "userprog/process.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
+#include "filesys/directory.h"
+#include "filesys/free-map.h"
+#include "filesys/inode.h"
 #include "threads/malloc.h"
 #include "threads/synch.h"
 #include "devices/input.h"
 #include "devices/shutdown.h"
 #include "threads/palloc.h"
 #include "userprog/pagedir.h"
-#include "vm/frame.h"
-#include "vm/page.h"
 
 typedef int pid_t;
 
 static void syscall_handler (struct intr_frame *);
-static int mapid=1;
 
 // different kinds of systemcall function that will be used.
 void halt (void);
@@ -35,6 +35,11 @@ int write (int fd, const void *buffer, unsigned size);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
+bool chdir (const char *pathname);
+bool mkdir (const char *pathname);
+bool readdir (int fd, char *name);
+bool isdir (int fd);
+int inumber (int fd);
 static bool is_valid_fd (int fd);
 
 /* Reads a byte at user virtual address UADDR.
@@ -97,7 +102,6 @@ void is_valid_string (const char *str){
 // function that call different syscalls
 static void syscall_handler (struct intr_frame *f){
   void *ptr = f->esp;
-  uint32_t *pp = f->esp;
   is_valid_ptr(ptr);                                                    /*check if the head of the pointer is valid*/
   is_valid_ptr(ptr+3);                                                  /*check if the tail of the pointer is valid*/
   int syscall_num = * (int *)f->esp;                                    /*get which systemcall*/
@@ -140,24 +144,6 @@ static void syscall_handler (struct intr_frame *f){
   }
 
   else if(syscall_num == SYS_REMOVE){                                   /*sys_remove*/
-    // #ifdef VM
-    //         struct list_elem *se;
-    //         struct spt_elem *spte;
-    //         bool deny;
-    // 		deny=false;
-    // 		for(se=list_begin(&thread_current()->spt);
-    // 		se!=list_end(&thread_current()->spt);se=list_next(se))
-    // 		{
-    // 			spte=(struct spt_elem *)list_entry (se, struct spt_elem, elem);
-    // 			if(spte->fileptr==*(pp+1))
-    // 			{
-    // 				//暂时不关闭
-    // 				spte->needremove=true;
-    // 				deny=true;
-    // 				break;
-    // 			}
-    // 		}
-    // #endif
     is_valid_ptr(ptr+4);                                                /*check if the head of the pointer is valid*/
     is_valid_ptr(ptr+7);                                                /*check if the tail of the pointer is valid*/
     char *file_name = *(char **)(ptr+4);                                /*get file name*/
@@ -224,144 +210,46 @@ static void syscall_handler (struct intr_frame *f){
   }
 
   else if(syscall_num == SYS_CLOSE){                                   /*sys_close*/
-
     is_valid_ptr(ptr+4);                                               /*check if the head of the pointer is valid*/
     is_valid_ptr(ptr+7);                                               /*check if the tail of the pointer is valid*/
     int fd = *(int *)(ptr + 4);                                        /*get fd*/
-    // #ifdef VM
-    //       bool deny;
-    //       struct list_elem *e;
-    //       struct list_elem *se;
-    //       struct file_desc *file_d;
-    //       struct spt_elem *spte;
-    // 			deny=false;
-    // 			for(se=list_begin(&thread_current()->spt);
-    // 			se!=list_end(&thread_current()->spt);se=list_next(se))
-    // 			{
-    // 				spte=(struct spt_elem *)list_entry (se, struct spt_elem, elem);
-    // 				if(spte->fileptr==file_d->file)
-    // 				{
-    // 					//暂时不关闭
-    // 					spte->needclose=true;
-    // 					deny=true;
-    // 					break;
-    // 				}
-    // 			}
-    // #endif
     close(fd);
   }
-  else if(syscall_num == SYS_MMAP){
-    struct list_elem *e;
-    struct list_elem *se;
-    struct list_elem *te;
-    struct file_desc *file_d;
-    struct list* fd_list = &thread_current()->fd_list;
-    bool findornot=false;
-    // [X]spt指针
-    struct spt_elem *spte;
-    struct spt_elem *spte2;
-    off_t filesize;
-    for (e = list_begin (fd_list); e != list_end (fd_list);
-        e = list_next (e))
-        {
-        file_d = list_entry (e, struct file_desc, elem);
-        //[X]找到文件描述符为fd的文件
-        if (file_d->fd == *(pp+1)){
-     findornot=true;
-           filesize= file_length (file_d->file);
-           //[X]因为一个文件可能占有多个
-           int mapped_page=0;
-     off_t fileoff=0;
-     //检查了测试，初始地址都是页面对齐的，所以不用处理第一次映射的不对齐问题
-     uint32_t upage=*(pp+2);
-     //[X]不合要求的虚存地址不能被映射
-     if(upage==0||(pg_round_down(upage)!=upage)||upage+PGSIZE>f->esp
-     ||upage<0x08050000)
-    {
-        f->eax=-1;
-        return;
-    }
-    lock_acquire(&thread_current()->spt_list_lock);
-           while(filesize>0)
-           {
-      spte=(struct spt_elem *)malloc(sizeof(struct spt_elem));
-      spte->upage=upage;
-      for (se = list_begin (&thread_current()->spt); se != list_end (&thread_current()->spt);
-      se = list_next (se))
-      {
-        spte2=(struct spt_elem *)list_entry (se, struct spt_elem, elem);
-        //[X]不能重叠映射
-        if(spte2->upage==spte->upage)
-        {
-          f->eax=-1;
-          return;
-        }
-      }
-      //[X]虚存空间的下一页
-      upage=upage+(uint32_t)PGSIZE;
-      spte->fileptr=file_d->file;
-      //[X]修改文件指针使
-      spte->ofs=mapped_page * (uint32_t)PGSIZE;
-      mapped_page++;
-      //[X]标记mapid
-      spte->mapid=mapid;
-      //[X]处理边界的最后一页
-      if(filesize>=PGSIZE)
-      {
-        spte->read_bytes=PGSIZE;
-        spte->zero_bytes=0;
-      }
-      else
-      {
-        spte->read_bytes=filesize;
-        spte->zero_bytes=PGSIZE-filesize;
-      }
-      spte->writable=true;
-      list_push_back (&thread_current()->spt, &spte->elem);
-      //表示一段已经映射进去了
-      filesize=filesize-PGSIZE;
-    }
-    lock_release(&thread_current()->spt_list_lock);
-    //[X]退出for循环
-    break;
-         }
+
+  else if(syscall_num == SYS_CHDIR){                                   /*sys_close*/
+    is_valid_ptr(ptr+4);                                               /*check if the head of the pointer is valid*/
+    is_valid_ptr(ptr+7);                                               /*check if the tail of the pointer is valid*/
+    const char *dir = *(char **)(ptr+4);                                  /*get fd*/
+    f->eax = chdir(dir);
   }
-  //[X]mapid作为返回值
-  if(findornot)
-  {
-  f->eax=mapid;
-  mapid++;
+
+  else if(syscall_num == SYS_MKDIR){                                   /*sys_close*/
+    is_valid_ptr(ptr+4);                                               /*check if the head of the pointer is valid*/
+    is_valid_ptr(ptr+7);                                               /*check if the tail of the pointer is valid*/
+    const char *dir = *(char **)(ptr+4);                                  /*get fd*/
+    f->eax = mkdir(dir);
   }
-  else
-  f->eax=-1;
+
+  else if(syscall_num == SYS_READDIR){                                   /*sys_close*/
+    is_valid_ptr(ptr+4);                                               /*check if the head of the pointer is valid*/
+    is_valid_ptr(ptr+7);                                               /*check if the tail of the pointer is valid*/
+    char *name = *(char **)(ptr+8);                                  /*get fd*/
+    int fd = *(int *)(ptr + 4);
+    f->eax = readdir(fd, name);
   }
-  else if(syscall_num == SYS_MUNMAP){
-    int mip=*(pp+1);
-		struct thread* t=thread_current();
-		struct spt_elem *spte;
-		struct list_elem *e;
-		struct list_elem *e2;
-		//[X]找到相应mip的对应的页面表项spte
-		lock_acquire(&thread_current()->spt_list_lock);
-          e = list_begin (&t->spt);
-          while(e!=list_end(&t->spt))
-          {
-			  spte=(struct spt_elem *)list_entry (e, struct spt_elem, elem);
-			  if(spte->mapid==mip)
-			  {
-				  //[X]该页是目标页,脏页面要写回
-				  if(pagedir_is_dirty(t->pagedir,spte->upage))
-				  {
-					file_write_at(spte->fileptr,spte->upage,PGSIZE,spte->ofs);
-				  }
-				  e2=e;
-				  e = list_next (e);
-				  list_remove(e2);
-			  }
-			  else
-				e = list_next (e);
-		  }
-		lock_release(&thread_current()->spt_list_lock);
+
+  else if(syscall_num == SYS_ISDIR){                                   /*sys_close*/
+    is_valid_ptr(ptr+4);                                               /*check if the head of the pointer is valid*/
+    is_valid_ptr(ptr+7);                                               /*check if the tail of the pointer is valid*/
+    int fd = *(int *)(ptr + 4);
+    f->eax = isdir(fd);
+  }
+
+  else if(syscall_num == SYS_INUMBER){                                   /*sys_close*/
+    is_valid_ptr(ptr+4);                                               /*check if the head of the pointer is valid*/
+    is_valid_ptr(ptr+7);                                               /*check if the tail of the pointer is valid*/
+    int fd = *(int *)(ptr + 4);
+    f->eax = inumber(fd);
   }
 }
 
@@ -463,6 +351,9 @@ int write (int fd, const void *buffer, unsigned size){
   }
   else{                                                                                /*if it is not STDOUT*/
     if (cur->file[fd] != NULL){
+      if(inode_is_dir(file_get_inode(cur->file[fd]))){
+        return -1;
+      }
       return file_write (cur->file[fd], buffer, size);
     }
     else{                                                                              /*return -1 if write fails*/
@@ -514,6 +405,109 @@ void close (int fd)
     return -1;
   }
 }
+
+bool chdir (const char *pathname){
+  struct thread *cur = thread_current();
+
+  struct dir *dir;
+  char *filename;
+  int result = parse_pathname(pathname, &dir, &filename);
+  if (result == -1) {
+      return false;
+  }
+  else if (result == 2) {
+      // root directory
+      dir_close(cur->cwd);
+      cur->cwd = dir_open_root();
+      return true;
+  }
+
+  struct inode *inode = NULL;
+  if (!dir_lookup(dir, filename, &inode) || !inode_is_dir(inode)) {
+      dir_close(dir);
+      free(filename);
+      return false;
+  }
+  dir_close(dir);
+  free(filename);
+  dir_close(cur->cwd);
+  cur->cwd = dir_open(inode);
+  return true;
+}
+
+bool mkdir (const char *pathname){
+  struct dir *dir;
+  char *filename;
+  int result = parse_pathname(pathname, &dir, &filename);
+  if (result == -1 || result == 2) {
+      return false;
+  }
+
+  block_sector_t inode_sector = 0;
+
+  bool success = free_map_allocate(1, &inode_sector)
+          && dir_create(inode_sector, 16)
+          && dir_add(dir, filename, inode_sector, true);
+
+  if (!success && inode_sector != 0) {
+      free_map_release(inode_sector, 1);
+  }
+
+  if (success) {
+      struct dir *newdir = dir_open_sector(inode_sector);
+      dir_add(newdir, ".", inode_sector, true);
+      dir_add(newdir, "..", inode_get_inumber(dir_get_inode(dir)), true);
+      dir_close(newdir);
+  }
+
+  dir_close(dir);
+  free(filename);
+  return success;
+}
+
+bool readdir (int fd, char *name){
+
+  struct thread *cur = thread_current ();
+
+  struct file *file = cur->file[fd];
+  if (file == NULL){
+    return false;
+  }
+  struct inode *inode = file_get_inode(file);
+  if (!inode_is_dir(inode)) {
+      return false;
+  }
+  off_t pos = file_tell(file);
+  struct dir *dir = dir_open(inode);
+  dir_seek(dir, pos);
+  bool result = dir_readdir(dir, name);
+  file_seek(file, dir_tell(dir));
+  free(dir);
+  return result;
+}
+
+bool isdir (int fd){
+  struct thread *cur = thread_current ();
+
+  struct file *file = cur->file[fd];
+  if (file == NULL){
+    return false;
+  }
+
+  return inode_is_dir(file_get_inode(file));
+}
+
+int inumber (int fd){
+  struct thread *cur = thread_current ();
+
+  struct file *file = cur->file[fd];
+  if (file == NULL){
+    return false;
+  }
+
+  return inode_get_inumber(file_get_inode(file));
+}
+
 
 void
 syscall_init (void)
