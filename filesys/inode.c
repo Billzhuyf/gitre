@@ -113,8 +113,13 @@ static bool inode_extend_level(block_sector_t *block,
           }
           cache_write_at(*block, zeros, BLOCK_SECTOR_SIZE, 0);
       }
-      if (level == 0)
-          break;
+      if (level == 0){
+        cache_write_at(*block, iid, BLOCK_SECTOR_SIZE, 0);
+        // free(iid);
+
+        return true;
+      }
+
 
       // struct inode_indirect *iid = malloc(BLOCK_SECTOR_SIZE);
       block_sector_t iid[128];
@@ -143,10 +148,7 @@ static bool inode_extend_level(block_sector_t *block,
       // }
     }
 
-    cache_write_at(*block, iid, BLOCK_SECTOR_SIZE, 0);
-    // free(iid);
 
-    return true;
 }
 
 static bool inode_extend(struct inode_disk *disk_inode, off_t length){
