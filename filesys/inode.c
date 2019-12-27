@@ -107,6 +107,7 @@ static bool inode_extend_level(block_sector_t *block,
     // return true;
 
     while(level >= 0){
+      block_sector_t iid[128];
       if (*block == 0) {
           if (!free_map_allocate(1, block)) {
               return false;
@@ -122,7 +123,7 @@ static bool inode_extend_level(block_sector_t *block,
 
 
       // struct inode_indirect *iid = malloc(BLOCK_SECTOR_SIZE);
-      block_sector_t iid[128];
+
 
       // if (!iid)
       //     return false;
