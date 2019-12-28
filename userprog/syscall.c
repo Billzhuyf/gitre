@@ -6,6 +6,7 @@
 #include "threads/vaddr.h"
 #include "userprog/process.h"
 #include "filesys/file.h"
+#include "filesys/inode.h"
 #include "filesys/filesys.h"
 #include "threads/malloc.h"
 #include "threads/synch.h"
@@ -32,6 +33,11 @@ int write (int fd, const void *buffer, unsigned size);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
+bool chdir (const char *dir);
+bool mkdir (const char *dir);
+bool readdir (int fd, char *name);
+bool isdir (int fd);
+int inumber (int fd);
 static bool is_valid_fd (int fd);
 
 /* Reads a byte at user virtual address UADDR.
@@ -207,6 +213,42 @@ static void syscall_handler (struct intr_frame *f){
     int fd = *(int *)(ptr + 4);                                        /*get fd*/
     close(fd);
   }
+
+  else if(syscall_num == SYS_CHDIR){                                   /*sys_chdir*/
+    is_valid_ptr(ptr+4);                                               /*check if the head of the pointer is valid*/
+    is_valid_ptr(ptr+7);                                               /*check if the tail of the pointer is valid*/
+    const char *dir = *(char **)(ptr+4);                               /*get dir*/
+    f->eax = chdir(dir);
+  }
+
+  else if(syscall_num == SYS_MKDIR){                                   /*sys_mkdir*/
+    is_valid_ptr(ptr+4);                                               /*check if the head of the pointer is valid*/
+    is_valid_ptr(ptr+7);                                               /*check if the tail of the pointer is valid*/
+    const char *dir = *(char **)(ptr+4);                               /*get dir*/
+    f->eax = mkdir(dir);
+  }
+
+  else if(syscall_num == SYS_READDIR){                                 /*sys_readdir*/
+    is_valid_ptr(ptr+4);                                               /*check if the head of the pointer is valid*/
+    is_valid_ptr(ptr+7);                                               /*check if the tail of the pointer is valid*/
+    char *name = *(char **)(ptr+8);                                    /*get name*/
+    int fd = *(int *)(ptr + 4);                                        /*get fd*/
+    f->eax = readdir(fd, name);
+  }
+
+  else if(syscall_num == SYS_ISDIR){                                   /*sys_isdir*/
+    is_valid_ptr(ptr+4);                                               /*check if the head of the pointer is valid*/
+    is_valid_ptr(ptr+7);                                               /*check if the tail of the pointer is valid*/
+    int fd = *(int *)(ptr + 4);                                        /*get fd*/
+    f->eax = isdir(fd);
+  }
+
+  else if(syscall_num == SYS_INUMBER){                                 /*sys_inumber*/
+    is_valid_ptr(ptr+4);                                               /*check if the head of the pointer is valid*/
+    is_valid_ptr(ptr+7);                                               /*check if the tail of the pointer is valid*/
+    int fd = *(int *)(ptr + 4);                                        /*get inumber*/
+    f->eax = inumber(fd);
+  }
 }
 
 // Terminates Pintos by calling shutdown_power_off()
@@ -357,6 +399,46 @@ void close (int fd)
   else{                                                                                /*return -1 if close fail*/
     return -1;
   }
+}
+
+//Changes the current working directory of the process to dir
+bool chdir (const char *dir)
+{
+  return true;
+}
+
+//Creates the directory named dir
+bool mkdir (const char *dir)
+{
+  size_t len = strlen(dir);
+  if (len == 0){                                                                       /*if the pathname is empty,return false*/
+    return false;
+  }
+  return true;
+}
+
+//Reads a directory entry from file descriptor fd
+bool readdir (int fd, char *name)
+{
+  return true;
+}
+
+//Returns true if fd represents a directory, false if it represents an ordinary file.
+bool isdir (int fd){
+  return true;
+}
+
+//Returns the inode number of the inode associated with fd
+int inumber (int fd)
+{
+  struct thread *cur = thread_current ();
+
+  struct file *file = cur->file[fd];                                                   /*find the file with fd*/
+  if (file == NULL){                                                                   /*file can not be NULL*/
+    return false;
+  }
+
+  return inode_get_inumber(file_get_inode(file));                                      /*get inode*/
 }
 
 void
